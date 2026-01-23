@@ -1,0 +1,135 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  
+  // App specific
+  snippets      Snippet[]       @relation("CreatedSnippets")
+  templates     Template[]      @relation("CreatedTemplates")
+  
+  savedSnippets SavedSnippet[]
+  savedTemplates SavedTemplate[]
+  
+  portfolio     Portfolio?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+ 
+  @@id([identifier, token])
+}
+
+model Snippet {
+  id        String   @id @default(cuid())
+  title     String
+  code      String   // Content/Code
+  type      String   // Hero, Profile, etc.
+  
+  ownerId   String
+  owner     User     @relation("CreatedSnippets", fields: [ownerId], references: [id])
+  
+  savedBy   SavedSnippet[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Template {
+  id        String   @id @default(cuid())
+  title     String
+  config    Json     // Layout config
+  
+  ownerId   String
+  owner     User     @relation("CreatedTemplates", fields: [ownerId], references: [id])
+  
+  savedBy   SavedTemplate[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SavedSnippet {
+  id        String   @id @default(cuid())
+  userId    String
+  snippetId String
+  
+  user      User     @relation(fields: [userId], references: [id])
+  snippet   Snippet  @relation(fields: [snippetId], references: [id])
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, snippetId])
+}
+
+model SavedTemplate {
+  id        String   @id @default(cuid())
+  userId    String
+  templateId String
+  
+  user      User     @relation(fields: [userId], references: [id])
+  template  Template @relation(fields: [templateId], references: [id])
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, templateId])
+}
+
+model Portfolio {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  
+  config    Json     // The active portfolio layout
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
